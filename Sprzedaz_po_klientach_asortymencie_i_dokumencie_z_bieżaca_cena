@@ -117,6 +117,9 @@ pw_Dane DANEWLASNE WITH (NOLOCK) ON DANEWLASNE.pwd_IdObiektu = TOW.tw_Id AND DAN
 LEFT JOIN
 adr_Email EMA ON  ADR.adr_Id= EMA.am_IdAdres  
 
+LEFT JOIN 
+pd_Uzytkownik UZY ON UZY.uz_Id = KON.kh_IdOpiekun
+
    WHERE 
    (ADR.adr_Nazwa LIKE '{T:Nazwa firmy}%')
    AND
@@ -125,6 +128,8 @@ adr_Email EMA ON  ADR.adr_Id= EMA.am_IdAdres
    --- tylko towary z cechą 'jest w katalogu'
    AND
    cht_idCecha =2
+   AND
+   uz_id IN({CHL_DB:Select uz_id,uz_Nazwisko FROM pd_uzytkownik ORDER BY uz_Nazwisko:uzytkownik})
 
 
    GROUP BY
