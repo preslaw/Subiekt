@@ -7,7 +7,7 @@ InvPrice,
 TodayPrice,
 ---CONCAT((TodayPrice-InvPrice)/InvPrice*100,' %') as '%Diff',
 ---CONCAT(ROUND((TodayPrice-InvPrice)/InvPrice*100,0),' %') as '%Diff',
-CONCAT(CAST((TodayPrice-InvPrice)/InvPrice*100 as INT),' %') as '%Diff',
+CONCAT(CAST((TodayPrice-InvPrice)/NULLIF(InvPrice,0)*100 as INT),' %') as '%Diff',
 
 CASE WHEN StockPCS>1 THEN 'on stock' ELSE '' END as 'On stock',
 
