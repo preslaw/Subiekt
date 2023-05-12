@@ -1,9 +1,18 @@
 SELECT
 Company,
 Item,
+Name,
+Opis,
 InvPrice,
 TodayPrice,
+---CONCAT((TodayPrice-InvPrice)/InvPrice*100,' %') as '%Diff',
+---CONCAT(ROUND((TodayPrice-InvPrice)/InvPrice*100,0),' %') as '%Diff',
+CONCAT(CAST((TodayPrice-InvPrice)/InvPrice*100 as INT),' %') as '%Diff',
+
+CASE WHEN StockPCS>1 THEN 'on stock' ELSE '' END as 'On stock',
+
 StockPCS,
+Email,
 InvQuantity,
 InvNo,
 InvDate
@@ -28,6 +37,26 @@ FROM
    CAST(POZ.ob_ilosc as INT) as InvQuantity,
    DOK.dok_NrPelny as InvNo,
    DOK.dok_DataWyst as InvDate,
+   MAX(TOW.tw_Opis) as Opis,
+
+---nazwa język
+CASE
+WHEN	JEZYK.LANG =1	THEN	 MAX(DANEWLASNE.pwd_Tekst10) ---RU
+WHEN	JEZYK.LANG =5	THEN	 MAX(TOW.tw_pole1)    ---GB
+WHEN    JEZYK.LANG = 6      THEN        MAX(TOW. tw_Nazwa)  ---PL
+WHEN	JEZYK.LANG =8	THEN	 MAX(TOW.tw_pole3)    ---HR
+WHEN	JEZYK.LANG =11	THEN	 MAX(TOW.tw_pole2)    ---IT
+WHEN	JEZYK.LANG =12	THEN	 MAX(DANEWLASNE.pwd_Tekst05) ---CZ
+WHEN	JEZYK.LANG =14	THEN	 MAX(TOW.tw_pole4)    ---DE
+WHEN	JEZYK.LANG =31	THEN	 MAX(DANEWLASNE.pwd_Tekst07) ---RO
+WHEN	JEZYK.LANG =32	THEN	 MAX(TOW.tw_pole6)    ---ES
+WHEN	JEZYK.LANG =33	THEN	 MAX(TOW.tw_pole5)    ---FR
+WHEN	JEZYK.LANG =34	THEN	 MAX(DANEWLASNE.pwd_Tekst04) ---HU
+WHEN	JEZYK.LANG =35	THEN	 MAX(DANEWLASNE.pwd_Tekst08) ---LT
+WHEN	JEZYK.LANG =36	THEN	 MAX(TOW.tw_pole7)    ---LV
+ELSE MAX (TOW.tw_Pole1) END as Name,
+EMA.am_Email as Email,
+
 
    --- zeby pokazywało rekord z najnowszą datą zrobiłem row_number gdzie rekord z najnowszą datą z danym klientem i indeksem artykułu dostaje 1 i później pokazywane są rekordy z RowNum=1
    ROW_NUMBER() OVER(PARTITION BY ADR.adr_Nazwa, TOW.tw_symbol ORDER BY TOW.tw_Symbol,DOK.dok_DataWyst DESC)  as RowNum
@@ -66,6 +95,28 @@ FROM
 
    LEFT JOIN tw_Stan STAN on TOW.tw_id = STAN.St_TowId
 
+LEFT JOIN
+(
+SELECT KON.Kh_Symbol as SYMBOL,
+MAX(CECHAsl.ckh_Id) as LANG
+FROM
+Kh__kontrahent KON
+LEFT JOIN 
+kh_CechaKh CECHA ON  KON.kh_id = CECHA.ck_IdKhnt  ---dodaję cechę 
+LEFT JOIN
+sl_CechaKh CECHAsl ON CECHAsl.ckh_Id = CECHA.ck_IdCecha  ---dodaję słownik nazw cech
+LEFT JOIN adr__Ewid ADR ON ADR.adr_IdObiektu = KON.kh_id AND ADR.adr_TypAdresu = 1
+WHERE CECHA.ck_IdCecha IN(1,5,6,8,11,12,14,31,32,33,34,35,36)
+GROUP BY
+kh_Symbol,ADR.adr_Nazwa
+) AS JEZYK ON JEZYK.SYMBOL = KON.kh_Symbol
+
+LEFT JOIN
+pw_Dane DANEWLASNE WITH (NOLOCK) ON DANEWLASNE.pwd_IdObiektu = TOW.tw_Id AND DANEWLASNE.pwd_TypObiektu = -14
+
+LEFT JOIN
+adr_Email EMA ON  ADR.adr_Id= EMA.am_IdAdres  
+
    WHERE 
    (ADR.adr_Nazwa LIKE '{T:Nazwa firmy}%')
    AND
@@ -77,7 +128,7 @@ FROM
 
 
    GROUP BY
-   ADR.adr_Nazwa, TOW.tw_Symbol, POZ.ob_ilosc, POZ.ob_CenaWaluta, DOK.dok_NrPelny, DOK.dok_DataWyst, DOK.dok_Waluta, KON.Kh_cena, CEN.tc_CenaNetto1, CEN.tc_CenaNetto2, CEN.tc_CenaNetto3, RAB.rt_Procent, POZ.ob_Rabat
+   ADR.adr_Nazwa, TOW.tw_Symbol, POZ.ob_ilosc, POZ.ob_CenaWaluta, DOK.dok_NrPelny, DOK.dok_DataWyst, DOK.dok_Waluta, KON.Kh_cena, CEN.tc_CenaNetto1, CEN.tc_CenaNetto2, CEN.tc_CenaNetto3, RAB.rt_Procent, POZ.ob_Rabat, JEZYK.LANG, EMA.am_Email
 
    ---ORDER BY
    ---ADR.adr_Nazwa,
@@ -85,6 +136,8 @@ FROM
    ---DOK.dok_DataWyst
 
 ) as Tabela1
+
+
 
 WHERE
 
